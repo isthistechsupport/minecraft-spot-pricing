@@ -2,6 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Minecraft Spot Price Server via Docker / ECS
 
 Parameters:
+  DaysToBackup:
+    Type: Number
+    Description: Number of days to retain EFS backups (0 disables backups, 1-30 enables backups with specified retention)
+    Default: 0
+    MinValue: 0
+    MaxValue: 30
+
   ECSAMI:
     Description: AWS ECS AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -288,6 +295,11 @@ Conditions:
       - !Ref Timezone
       - ''
 
+  BackupsEnabled: !Not
+    - !Equals
+      - !Ref DaysToBackup
+      - 0
+
 Mappings:
   ServerState:
     Running:
@@ -371,7 +383,61 @@ Resources:
   # EFS FOR PERSISTENT DATA
   Efs:
     Type: AWS::EFS::FileSystem
-    Properties: {}
+    Properties:
+      BackupPolicy:
+        Status: !If
+          - BackupsEnabled
+          - ENABLED
+          - DISABLED
+
+  # AWS BACKUP RESOURCES
+  BackupVault:
+    Type: AWS::Backup::BackupVault
+    Condition: BackupsEnabled
+    Properties:
+      BackupVaultName: !Sub ${AWS::StackName}-backup-vault
+
+  BackupRole:
+    Type: AWS::IAM::Role
+    Condition: BackupsEnabled
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - backup.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+
+  BackupPlan:
+    Type: AWS::Backup::BackupPlan
+    Condition: BackupsEnabled
+    Properties:
+      BackupPlan:
+        BackupPlanName: !Sub ${AWS::StackName}-backup-plan
+        BackupPlanRule:
+          - RuleName: !Sub ${AWS::StackName}-daily-backup
+            TargetBackupVault: !Ref BackupVault
+            ScheduleExpression: cron(0 0 ? * * *)  # Daily at midnight UTC
+            StartWindowMinutes: 60
+            CompletionWindowMinutes: 120
+            Lifecycle:
+              DeleteAfterDays: !Ref DaysToBackup
+
+  BackupSelection:
+    Type: AWS::Backup::BackupSelection
+    Condition: BackupsEnabled
+    Properties:
+      BackupPlanId: !Ref BackupPlan
+      BackupSelection:
+        SelectionName: !Sub ${AWS::StackName}-backup-selection
+        IamRoleArn: !GetAtt BackupRole.Arn
+        Resources:
+          - !Sub arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/${Efs}
 
   MountA:
     Type: AWS::EFS::MountTarget
