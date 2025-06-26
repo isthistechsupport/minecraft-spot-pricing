@@ -129,12 +129,28 @@ Your public IP address has probably changed. [Check your public IP address]((htt
 
 ## 💾 Backup & Recovery
 
-- EFS automatically provides durability across multiple Availability Zones
-- Consider enabling EFS backup for point-in-time recovery
 - World saves are stored in `/opt/minecraft/` on the EFS mount
 - Server configuration files are preserved between instance terminations
-- For additional protection, consider periodic EFS snapshots
-- Document your mod configurations and server settings for easy restoration
+
+The solution includes built-in backup capabilities using AWS Backup:
+
+- EFS automatically provides durability across multiple Availability Zones
+- AWS Backup integration is available through the `DaysToBackup` parameter:
+  - Set to 0 to disable automated backups
+  - Set between 1-30 to enable daily backups with specified retention period
+- When enabled, the following backup resources are created:
+  - A dedicated backup vault for storing your backups
+  - A daily backup plan with configurable retention
+  - IAM roles with necessary backup permissions
+- All backups are managed through AWS Backup service for:
+  - Point-in-time recovery capabilities
+  - Automated backup scheduling
+  - Consistent backup state
+- Best practices:
+  - Enable backups by setting an appropriate retention period
+  - Document your mod configurations and server settings
+  - Monitor backup completion status in AWS Backup console
+  - Test restore procedures periodically
 
 ## Expected Costs
 
