@@ -2,10 +2,18 @@
 
 The template contained within this repository can be used to deploy a Minecraft server to Amazon Web Services (AWS) in minutes. As the solution leverages "Spot Pricing", the server should cost less than a cent an hour to run, and you can even turn it off when you and your friends aren't playing - saving even more money.
 
+## 🔄 Fork Status
+
+This is an updated fork of the original minecraft-spot-pricing project. The original repository has not been maintained for some time, so this fork includes:
+- Updated CloudFormation templates for current AWS services
+- Security improvements and best practices
+- Bug fixes and performance optimizations
+- Updated documentation
+
 ## Prerequisites
 
 1. A basic understanding of Amazon Web Services, specifically CloudFormation.
-2. An AWS Account.
+2. An AWS Account. (checkout https://aws.amazon.com/free)
 3. Basic knowledge of Linux administration (no more than what would be required to just use the `itzg/docker-minecraft-server` Docker image).
 
 ## Overview
@@ -22,7 +30,7 @@ A few notes on the services we're using...
 
 * **EFS** - Elastic File System is used to store Minecraft config, save games, mods etc. None of this is stored on the server itself, as it may terminate at any time.
 * **Auto Scaling** - An Auto Scaling Group is used to maintain a single instance via spot pricing.
-* **VPC** - The template deploys a very basic VPC, purely for use by the Minecraft server. This doesn't cost you a cent.
+* **VPC** - The template deploys a very basic VPC, purely for use by the Minecraft server. 
 
 ## Getting Started
 
@@ -31,7 +39,7 @@ A few notes on the services we're using...
 1. Click the above link, you'll need to log into your AWS account if you haven't already.
 2. Ensure you've selected a suitable AWS Region (closest to you) via the selector at the top right.
 3. Upload the cf.yml file.
-4. Click Next to proceed through the CloudFormation deployment, provide parameters on the following page. You'll need a Key Pair and your Public IP address if you want to access the instance remotely via SSH (recommended). Refer to the Remote Access section below. There should be no need to touch any other parameters unless you have reason to do so. Continue through the rest of the deployment. 
+4. Click Next to proceed through the CloudFormation deployment, provide parameters on the following page. You'll need a Key Pair and your Public IP address if you want to access the instance remotely via SSH (I'm working a a Session Manager update). Refer to the Remote Access section below. There should be no need to touch any other parameters unless you have reason to do so. Continue through the rest of the deployment. 
 
 ## Next Steps
 
@@ -55,6 +63,17 @@ If you're creating a new Minecraft deployment, provide these parameters when cre
 ### Custom Domain Name
 
 Every time your Minecraft server starts it'll have a new public IP address. This can be a pain to keep dishing out to your friends. If you're prepared to register a domain name (maybe you've already got one) and create a Route 53 hosted zone, this problem is easily fixed. You'll need to provide both of the parameters under the DNS Configuration (Optional) section. Whenever your instance is launched, a Lambda function fires off and creates / updates the record of your choosing. This way, you can have a custom domain name such as "minecraft.mydomain.com". Note that it may take a few minutes for the new IP to propagate to your friends computers. Have patience. Failing that just go to the EC2 console, and give them the new public IP address of your instance.
+
+## 🔒 Security Best Practices
+
+- Always use the latest AMI images
+- Regularly update the Docker image version
+- Consider using AWS Systems Manager Session Manager instead of SSH
+- Enable CloudTrail logging for audit purposes
+- Use least-privilege IAM roles
+- Restrict SSH access to known IP addresses only
+- Keep security groups minimal and specific
+- Monitor CloudWatch logs for suspicious activity
 
 ## FAQ
 
@@ -107,6 +126,15 @@ Your public IP address has probably changed. [Check your public IP address]((htt
 ## What's Missing / Not Supported?
 
 * I didn't exhaustively copy over all the environment variables available, feel free to edit the cf.yml as needed by copying and renaming the appropriate blocks (like 'Whitelist/WhitelistProvided')
+
+## 💾 Backup & Recovery
+
+- EFS automatically provides durability across multiple Availability Zones
+- Consider enabling EFS backup for point-in-time recovery
+- World saves are stored in `/opt/minecraft/` on the EFS mount
+- Server configuration files are preserved between instance terminations
+- For additional protection, consider periodic EFS snapshots
+- Document your mod configurations and server settings for easy restoration
 
 ## Expected Costs
 
