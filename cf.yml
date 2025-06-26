@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Minecraft Spot Price Server via Docker / ECS
-Parameters:
 
+Parameters:
   ECSAMI:
     Description: AWS ECS AMI ID
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
@@ -170,113 +170,6 @@ Parameters:
     Type: String
     Description: "Change the server's timezone. Use the canonical name of the format: Area/Location (e.g. America/New_York)"
 
-Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
-      - Label: 
-          default: Essential Configuration
-        Parameters:
-        - ServerState
-        - InstanceType
-        - SpotPrice
-      - Label:
-          default: Server Settings
-        Parameters:
-        - MinecraftImageTag
-      - Label:
-          default: Optional Server Settings
-        Parameters:
-        - MinecraftTypeTag
-        - AdminPlayerNames
-        - Difficulty
-        - Whitelist
-        - MinecraftVersion
-        - Memory
-        - Seed
-        - MaxPlayers
-        - ViewDistance
-        - GameMode
-        - LevelType
-        - EnableRollingLogs
-        - Timezone
-      - Label:
-          default: Optional ECS Cluster and Task Configuration
-        Parameters:
-        - ContainerInsights
-        - EntryPoint
-        - Command
-        - LogGroupName
-        - LogGroupRetentionInDays
-        - LogStreamPrefix
-      - Label: 
-          default: Optional Remote Access (SSH) Configuration
-        Parameters:
-        - KeyPairName
-        - YourIPv4
-        - YourIPv6
-      - Label: 
-          default: Optional DNS Configuration
-        Parameters:
-        - HostedZoneId
-        - RecordName
-    ParameterLabels:
-      ServerState:
-        default: "Update this parameter to shut down / start up your Minecraft server as required to save on cost. Takes a few minutes to take effect."
-      InstanceType:
-        default: "Which instance type? You must make sure this is available in your region! https://aws.amazon.com/ec2/pricing/on-demand/"
-      SpotPrice:
-        default: "Maximum spot price per hour? Leave blank to disable spot pricing."
-      MinecraftImageTag:
-        default: "Which version of Minecraft do you want to launch?"
-      MinecraftTypeTag:
-        default: "Which type of Minecraft do you want to launch?"
-      AdminPlayerNames:
-        default: "A comma delimited list (no spaces) of player names to be admins"
-      Difficulty:
-        default: "Which difficulty?"
-      Whitelist:
-        default: "A comma delimited list (no spaces) of player names"
-      MinecraftVersion:
-        default: "Minecraft version ie 1.16.3"
-      ContainerInsights:
-        default: "ECS Container Insights provide additional container metrics, and supports collection of Prometheus metrics.  Additional AWS charges may apply."
-      EntryPoint:
-        default: "Task/container --entrypoint, comma separated e.g. /bin/bash,-c"
-      Command:
-        default: "Task/container command, comma separated arguments passed to entrypoint"
-      LogGroupName:
-        default: "Create CloudWatch Log Group with this name e.g. /Minecraft or /ecs/minecraft, and direct container logs there"
-      LogGroupRetentionInDays:
-        default: "Number of days to retain CloudWatch logs"
-      LogStreamPrefix:
-        default: "Prefix for container log stream e.g. minecraft-server"
-      KeyPairName:
-        default: "If you wish to access the instance via SSH, select a Key Pair to use. https://console.aws.amazon.com/ec2/v2/home?#KeyPairs:sort=keyName"
-      YourIPv4:
-        default: "If you wish to access the instance via SSH and using IPv4, provide it."
-      YourIPv6:
-        default: "If you wish to access the instance via SSH and using IPv6, provide it."
-      HostedZoneId:
-        default: "If you have a hosted zone in Route 53 and wish to update a DNS record whenever your Minecraft instance starts, supply the hosted zone ID here."
-      RecordName:
-        default: "If you have a hosted zone in Route 53 and wish to set a DNS record whenever your Minecraft instance starts, supply a record name here (e.g. minecraft.mydomain.com)."
-      Memory:
-        default: "If you wish to increase the Java memory-heap limit of 1GB. Format: <size>[g|G|m|M|k|K]"
-      Seed:
-        default: "Seed for world generation"
-      MaxPlayers:
-        default: "Max simultaneous players"
-      ViewDistance:
-        default: "Max view distance"
-      GameMode:
-        default: "The Minecraft game mode"
-      LevelType:
-        default: "Level type for world generation"
-      EnableRollingLogs:
-        default: "Whether to enable rolling logs"
-      Timezone:
-        default: "The server's timezone"
-
 Conditions:
   MinecraftTypeTagProvided: !Not [ !Equals [ !Ref MinecraftTypeTag, '' ] ]
   AdminPlayerNamesProvided: !Not [ !Equals [ !Ref AdminPlayerNames, '' ] ]
@@ -301,7 +194,6 @@ Conditions:
   EnableRollingLogsProvided: !Not [ !Equals [ !Ref EnableRollingLogs, '' ] ]
   TimezoneProvided: !Not [ !Equals [ !Ref Timezone, '' ] ]
 
-
 Mappings:
   ServerState:
     Running:
@@ -310,11 +202,7 @@ Mappings:
       DesiredCapacity: 0
 
 Resources:
-
-  # ====================================================
-  # BASIC VPC
-  # ====================================================
-
+  # VPC and related resources
   Vpc: 
     Type: AWS::EC2::VPC
     Properties: 
@@ -376,10 +264,7 @@ Resources:
       GatewayId: !Ref InternetGateway
       RouteTableId: !Ref RouteTable
 
-  # ====================================================
   # EFS FOR PERSISTENT DATA
-  # ====================================================
-
   Efs:
     Type: AWS::EFS::FileSystem
     Properties: {}
@@ -412,10 +297,7 @@ Resources:
         SourceSecurityGroupId: !Ref Ec2Sg
       VpcId: !Ref Vpc
       
-  # ====================================================
   # INSTANCE CONFIG
-  # ====================================================
-
   Ec2Sg:
     Type: AWS::EC2::SecurityGroup
     Properties: 
@@ -441,45 +323,6 @@ Resources:
         IpProtocol: tcp
         CidrIp: 0.0.0.0/0
       VpcId: !Ref Vpc
-
-  LaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !Ref ECSAMI
-      InstanceType: !Ref InstanceType
-      KeyName: 
-        !If [ KeyPairNameProvided, !Ref KeyPairName, !Ref 'AWS::NoValue' ]
-      SecurityGroups:
-      - !Ref Ec2Sg
-      SpotPrice: !If [ SpotPriceProvided, !Ref SpotPrice, !Ref 'AWS::NoValue' ]
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
-          yum install -y amazon-efs-utils
-          mkdir /opt/minecraft
-          mount -t efs ${Efs}:/ /opt/minecraft
-          chown 845:845 /opt/minecraft
-
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn:
-    - MountA
-    - MountB
-    Properties:
-      AutoScalingGroupName: !Sub "${AWS::StackName}-asg"
-      DesiredCapacity: !FindInMap [ ServerState, !Ref ServerState, DesiredCapacity ]
-      LaunchConfigurationName: !Ref LaunchConfiguration
-      NewInstancesProtectedFromScaleIn: true
-      MaxSize: 1
-      MinSize: 0
-      VPCZoneIdentifier:
-        - !Ref SubnetA
-        - !Ref SubnetB
-    Metadata:
-      LaunchEvent: !If [ DnsConfigEnabled, !GetAtt LaunchEvent.Arn, "" ]
 
   InstanceRole:
     Type: AWS::IAM::Role
@@ -509,6 +352,56 @@ Resources:
       ClusterSettings:
         - Name: containerInsights
           Value: !Ref ContainerInsights
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${AWS::StackName}-launch-template"
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Name: !Ref InstanceProfile
+        ImageId: !Ref ECSAMI
+        InstanceType: !Ref InstanceType
+        KeyName: !If [ KeyPairNameProvided, !Ref KeyPairName, !Ref 'AWS::NoValue' ]
+        InstanceMarketOptions: !If 
+          - SpotPriceProvided
+          - MarketType: spot
+            SpotOptions:
+              MaxPrice: !Ref SpotPrice
+          - !Ref 'AWS::NoValue'
+        NetworkInterfaces:
+          - AssociatePublicIpAddress: true
+            DeviceIndex: 0
+            Groups:
+              - !Ref Ec2Sg
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
+            yum install -y amazon-efs-utils
+            mkdir /opt/minecraft
+            mount -t efs ${Efs}:/ /opt/minecraft
+            chown 845:845 /opt/minecraft
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+    - MountA
+    - MountB
+    Properties:
+      AutoScalingGroupName: !Sub "${AWS::StackName}-asg"
+      DesiredCapacity: !FindInMap [ ServerState, !Ref ServerState, DesiredCapacity ]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      NewInstancesProtectedFromScaleIn: true
+      MaxSize: 1
+      MinSize: 0
+      VPCZoneIdentifier:
+        - !Ref SubnetA
+        - !Ref SubnetB
+    Metadata:
+      LaunchEvent: !If [ DnsConfigEnabled, !GetAtt LaunchEvent.Arn, "" ]
 
   ECSCapacityProvider:
     Type: AWS::ECS::CapacityProvider
@@ -664,10 +557,7 @@ Resources:
       LogGroupName: !Sub "${LogGroupName}"
       RetentionInDays: !Sub "${LogGroupRetentionInDays}"
 
-  # ====================================================
   # SET DNS RECORD
-  # ====================================================
-
   SetDNSRecordLambdaRole:
     Type: AWS::IAM::Role
     Condition: DnsConfigEnabled
@@ -768,3 +658,4 @@ Outputs:
   CheckInstanceIp:
     Description: To find your Minecraft instance IP address, visit the following link. Click on the instance to find its Public IP address.
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/ec2/v2/home?region=${AWS::Region}#Instances:tag:aws:autoscaling:groupName=${AutoScalingGroup};sort=tag:Name"
+
