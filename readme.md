@@ -8,6 +8,7 @@ This is an updated fork of the original minecraft-spot-pricing project. The orig
 - Updated CloudFormation templates for current AWS services
 - Security improvements and best practices
 - Bug fixes and performance optimizations
+- Automatic backups
 - Updated documentation
 
 ## Prerequisites
