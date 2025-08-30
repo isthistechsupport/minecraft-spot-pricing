@@ -35,12 +35,11 @@ A few notes on the services we're using...
 
 ## Getting Started
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=minecraft)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=minecraft&templateURL=https://minecraft-spot-pricing.s3.amazonaws.com/cf.yml)
 
 1. Click the above link, you'll need to log into your AWS account if you haven't already.
 2. Ensure you've selected a suitable AWS Region (closest to you) via the selector at the top right.
-3. Upload the cf.yml file.
-4. Click Next to proceed through the CloudFormation deployment, provide parameters on the following page. You'll need a Key Pair and your Public IP address if you want to access the instance remotely via SSH (I'm working a a Session Manager update). Refer to the Remote Access section below. There should be no need to touch any other parameters unless you have reason to do so. Continue through the rest of the deployment. 
+3. Click Next to proceed through the CloudFormation deployment, provide parameters on the following page. You'll need a Key Pair and your Public IP address if you want to access the instance remotely via SSH (I'm working a a Session Manager update). Refer to the Remote Access section below. There should be no need to touch any other parameters unless you have reason to do so. Continue through the rest of the deployment.
 
 ## Next Steps
 
