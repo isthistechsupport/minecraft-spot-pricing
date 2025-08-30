@@ -1,0 +1,27 @@
+name: Push to S3
+
+on:
+  push:
+    branches:
+      - main
+env:
+  BUCKET_NAME: "minecraft-spot-pricing"
+  AWS_REGION: "us-east-2"
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4.3.1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: ${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Copy cf.yml to S3 bucket
+        run: |
+          aws s3 cp cf.yml s3://${{ env.BUCKET_NAME }}
