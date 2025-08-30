@@ -113,6 +113,12 @@ Parameters:
       descriptions available here:
       https://github.com/itzg/docker-minecraft-server)'
 
+  Plugins:
+    Type: String
+    Description: 'List of plugin URLs to install (comma-separated). Refer to the
+      documentation for supported plugins.'
+    Default: ''
+
   AdminPlayerNames:
     Type: String
     Description: Op/Administrator Players
@@ -200,6 +206,10 @@ Conditions:
   MinecraftTypeTagProvided: !Not
     - !Equals
       - !Ref MinecraftTypeTag
+      - ''
+  PluginsProvided: !Not
+    - !Equals
+      - !Ref Plugins
       - ''
   AdminPlayerNamesProvided: !Not
     - !Equals
@@ -492,6 +502,10 @@ Resources:
           ToPort: 25565
           IpProtocol: tcp
           CidrIp: 0.0.0.0/0
+        - FromPort: 19132
+          ToPort: 19132
+          IpProtocol: udp
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref Vpc
 
   InstanceRole:
@@ -651,6 +665,9 @@ Resources:
             - ContainerPort: 25565
               HostPort: 25565
               Protocol: tcp
+            - ContainerPort: 19132
+              HostPort: 19132
+              Protocol: udp
           LogConfiguration: !If
             - LogGroupNameProvided
             - LogDriver: awslogs
@@ -674,6 +691,11 @@ Resources:
               - MinecraftTypeTagProvided
               - Name: TYPE
                 Value: !Sub ${MinecraftTypeTag}
+              - !Ref AWS::NoValue
+            - !If
+              - PluginsProvided
+              - Name: PLUGINS
+                Value: !Sub ${Plugins}
               - !Ref AWS::NoValue
             - !If
               - AdminPlayerNamesProvided
