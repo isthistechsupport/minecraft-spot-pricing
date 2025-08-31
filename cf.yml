@@ -70,21 +70,6 @@ Parameters:
     Description: (Optional)
     Default: minecraft-server
 
-  KeyPairName:
-    Type: String
-    Description: (Optional - An empty value disables this feature)
-    Default: ''
-
-  YourIPv4:
-    Type: String
-    Description: (Optional - An empty value disables this feature)
-    Default: ''
-
-  YourIPv6:
-    Type: String
-    Description: (Optional - An empty value disables this feature)
-    Default: ''
-
   HostedZoneId:
     Type: String
     Description: (Optional - An empty value disables this feature) If you have a
@@ -100,18 +85,29 @@ Parameters:
       minecraft.mydomain.com).
     Default: ''
 
+  MinecraftEdition:
+    Type: String
+    Description: 'Minecraft Edition (Java or Bedrock)'
+    Default: Java
+    AllowedValues:
+      - Java
+      - Bedrock
+
   MinecraftImageTag:
     Type: String
-    Description: 'Java version (Examples include latest, adopt13, openj9, etc) Refer
-      to tag descriptions available here:
-      https://github.com/itzg/docker-minecraft-server)'
+    Description: 'Container image tag. Refer to tag descriptions available here for Java:
+      https://hub.docker.com/r/itzg/minecraft-server/tags
+      or here for Bedrock:
+      https://hub.docker.com/r/itzg/minecraft-bedrock-server/tags'
     Default: latest
 
   MinecraftTypeTag:
     Type: String
-    Description: '(Examples include SPIGOT, BUKKIT, TUINITY, etc) Refer to tag
-      descriptions available here:
-      https://github.com/itzg/docker-minecraft-server)'
+    Description: 'Server Type (for modpacks and plugins, Java exclusive).
+    Examples include VANILLA, FABRIC, PAPER, QUILT, etc.
+    Refer to documentation here:
+    https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/'
+    Leave empty if using Bedrock Edition.
 
   Plugins:
     Type: String
@@ -192,7 +188,7 @@ Parameters:
     Type: String
     Description: By default the log file will grow without limit. Set to true to use
       a rolling log strategy.
-    Default: false
+    Default: true
     AllowedValues:
       - true
       - false
@@ -246,18 +242,6 @@ Conditions:
   LogStreamPrefixProvided: !Not
     - !Equals
       - !Ref LogStreamPrefix
-      - ''
-  KeyPairNameProvided: !Not
-    - !Equals
-      - !Ref KeyPairName
-      - ''
-  IPv4AddressProvided: !Not
-    - !Equals
-      - !Ref YourIPv4
-      - ''
-  IPv6AddressProvided: !Not
-    - !Equals
-      - !Ref YourIPv6
       - ''
   DnsConfigEnabled: !And
     - !Not
@@ -316,6 +300,11 @@ Mappings:
       DesiredCapacity: 1
     Stopped:
       DesiredCapacity: 0
+  MinecraftEdition:
+    Java:
+      DockerRepo: itzg/minecraft-server
+    Bedrock:
+      DockerRepo: itzg/minecraft-bedrock-server
 
 Resources:
   # VPC and related resources
@@ -484,20 +473,6 @@ Resources:
       GroupName: !Sub ${AWS::StackName}-ec2
       GroupDescription: !Sub ${AWS::StackName}-ec2
       SecurityGroupIngress:
-        - !If
-          - IPv4AddressProvided
-          - FromPort: 22
-            ToPort: 22
-            IpProtocol: tcp
-            CidrIp: !Sub ${YourIPv4}/32
-          - !Ref AWS::NoValue
-        - !If
-          - IPv6AddressProvided
-          - FromPort: 22
-            ToPort: 22
-            IpProtocol: tcp
-            CidrIpv6: !Sub ${YourIPv6}/128
-          - !Ref AWS::NoValue
         - FromPort: 25565
           ToPort: 25565
           IpProtocol: tcp
@@ -522,6 +497,7 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -546,10 +522,6 @@ Resources:
           Name: !Ref InstanceProfile
         ImageId: !Ref ECSAMI
         InstanceType: !Ref InstanceType
-        KeyName: !If
-          - KeyPairNameProvided
-          - !Ref KeyPairName
-          - !Ref AWS::NoValue
         InstanceMarketOptions: !If
           - SpotPriceProvided
           - MarketType: spot
@@ -571,6 +543,7 @@ Resources:
             #!/bin/bash -xe
             echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
             yum install -y amazon-efs-utils
+            yum install -y amazon-ssm-agent
             mkdir /opt/minecraft
             mount -t efs ${Efs}:/ /opt/minecraft
             chown 845:845 /opt/minecraft
@@ -652,7 +625,7 @@ Resources:
       ContainerDefinitions:
         - Name: minecraft
           MemoryReservation: 1024
-          Image: !Sub itzg/minecraft-server:${MinecraftImageTag}
+          Image: !Sub ${MinecraftDockerRepo}:${MinecraftImageTag}
           EntryPoint: !If
             - EntryPointProvided
             - !Ref EntryPoint
