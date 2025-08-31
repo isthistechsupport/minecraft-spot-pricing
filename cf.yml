@@ -104,10 +104,10 @@ Parameters:
   MinecraftTypeTag:
     Type: String
     Description: 'Server Type (for modpacks and plugins, Java exclusive).
-    Examples include VANILLA, FABRIC, PAPER, QUILT, etc.
-    Refer to documentation here:
-    https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/'
-    Leave empty if using Bedrock Edition.
+      Examples include VANILLA, FABRIC, PAPER, QUILT, etc.
+      Refer to documentation here:
+      https://docker-minecraft-server.readthedocs.io/en/latest/types-and-platforms/
+      Leave empty if using Bedrock Edition.'
 
   Plugins:
     Type: String
