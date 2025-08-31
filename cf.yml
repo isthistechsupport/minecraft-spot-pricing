@@ -625,7 +625,12 @@ Resources:
       ContainerDefinitions:
         - Name: minecraft
           MemoryReservation: 1024
-          Image: !Sub ${MinecraftDockerRepo}:${MinecraftImageTag}
+          Image: !Sub
+            - "${DockerRepo}:${MinecraftImageTag}"
+            - DockerRepo: !FindInMap
+              - MinecraftEdition
+              - !Ref MinecraftEdition
+              - DockerRepo
           EntryPoint: !If
             - EntryPointProvided
             - !Ref EntryPoint
